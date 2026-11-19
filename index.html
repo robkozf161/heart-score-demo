@@ -8,6 +8,7 @@
 :root{--bg:#f4f6f8;--card:#fff;--ink:#1d2733;--mute:#5d6b7a;--line:#dde3ea;--accent:#1f5f99;
 --low:#1e7b4a;--lowbg:#e6f4ec;--mod:#a86200;--modbg:#fdf1de;--high:#b3261e;--highbg:#fbe7e5;}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;font:14px/1.4 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
 header{background:#14344f;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 header h1{font-size:16px;margin:0;font-weight:600}
@@ -256,11 +257,11 @@ This app cannot be accessed directly. Please launch it as SMART app!`,c):c}).cat
       for (const def of RISK_FACTORS) {
         if (found[def.key]) continue;
         const m = matchesDef(c, def);
-        if (m) found[def.key] = { label: def.label, source: "Problem list: " + name + " (" + m.how + ")" };
+        if (m) found[def.key] = { label: def.label, source: (c._src || "Problem list") + ": " + name + " (" + m.how + ")" };
       }
       if (!athero) {
         const m = matchesDef(c, ATHERO);
-        if (m) athero = { label: ATHERO.label, source: "Problem list: " + name + " (" + m.how + ")" };
+        if (m) athero = { label: ATHERO.label, source: (c._src || "Problem list") + ": " + name + " (" + m.how + ")" };
       }
     }
     const obs = observations || [];
@@ -461,7 +462,7 @@ This app cannot be accessed directly. Please launch it as SMART app!`,c):c}).cat
         await new Promise(r => setTimeout(r, 150)); // feel like a network call
         const [path, qs] = url.split("?");
         const p = new URLSearchParams(qs || "");
-        if (path.startsWith("Condition")) return d.conditions;
+        if (path.startsWith("Condition")) return p.get("category") === "problem-list-item" ? d.conditions : [];
         if (path.startsWith("Observation")) {
           const codes = (p.get("code") || "").split(",").map(s => s.split("|").pop()).filter(Boolean);
           return d.observations.filter(o => !codes.length || o.code.coding.some(c => codes.includes(c.code)));
@@ -575,8 +576,9 @@ This app cannot be accessed directly. Please launch it as SMART app!`,c):c}).cat
     }
     const pid = client.patient.id;
     const tropCodes = Object.keys(H.TROPONIN_LOINC).map(c => "http://loinc.org|" + c).join(",");
-    const [conds, trops, bmis, smokes] = await Promise.all([
+    const [probs, dxs, trops, bmis, smokes] = await Promise.all([
       pull(client, "Problem list", `Condition?patient=${pid}&category=problem-list-item`),
+      pull(client, "Encounter diagnoses", `Condition?patient=${pid}&category=encounter-diagnosis`),
       pull(client, "Troponin", `Observation?patient=${pid}&code=${tropCodes}`),
       pull(client, "BMI", `Observation?patient=${pid}&code=http://loinc.org|${H.BMI_LOINC}`),
       pull(client, "Smoking status", `Observation?patient=${pid}&code=http://loinc.org|${H.SMOKING_LOINC}`)
@@ -585,6 +587,9 @@ This app cannot be accessed directly. Please launch it as SMART app!`,c):c}).cat
     S.patient = patient || null;
     S.ageYrs = patient ? H.ageYears(patient.birthDate) : null;
 
+    // Problem list first so its entries are cited ahead of encounter diagnoses.
+    const conds = probs.map(c => ({ ...c, _src: "Problem list" }))
+      .concat(dxs.map(c => ({ ...c, _src: "Encounter diagnosis" })));
     const rf = H.findRiskFactors(conds, bmis.concat(smokes));
     for (const def of H.RISK_FACTORS) {
       const f = rf.found[def.key];
@@ -669,7 +674,7 @@ This app cannot be accessed directly. Please launch it as SMART app!`,c):c}).cat
         <span>${esc(r.label)}${r.auto ? `<small class="src">✓ ${esc(r.source)}</small>` : ""}</span></label>`;
     }).join("");
     const why = S.rf.athero.checked ? "known atherosclerotic disease → 2" : `${P._rfCount} risk factor${P._rfCount === 1 ? "" : "s"} → ${P.risk}`;
-    $("#cR").innerHTML = head("R", "Risk factors", P.risk, "Pre-filled from problem list, BMI, smoking status — verify", true) +
+    $("#cR").innerHTML = head("R", "Risk factors", P.risk, "Pre-filled from problem list, encounter diagnoses, BMI, smoking — verify", true) +
       `<div class="rfs">${rows}</div><div class="why">${why}</div>`;
     document.querySelectorAll("[data-rf]").forEach(el => el.onchange = () => { S.rf[el.dataset.rf].checked = el.checked; render(); });
   }
