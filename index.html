@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEART Score — Calculator Module</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#1d2733;--mute:#5d6b7a;--line:#dde3ea;--accent:#1f5f99;
+--low:#1e7b4a;--lowbg:#e6f4ec;--mod:#a86200;--modbg:#fdf1de;--high:#b3261e;--highbg:#fbe7e5;}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.4 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#14344f;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:16px;margin:0;font-weight:600}
+header h1 small{font-weight:400;opacity:.75;margin-left:6px}
+.mode{margin-left:auto;font-size:12px;padding:3px 8px;border-radius:10px;font-weight:600}
+.mode.demo{background:#f6c344;color:#3a2a00}.mode.live{background:#3fbf7f;color:#04220f}
+.disclaimer{background:#fff8e1;border-bottom:1px solid #f0dca0;padding:6px 16px;font-size:12px;color:#5b4a12}
+#err{background:var(--highbg);color:var(--high);padding:8px 16px;font-size:13px}
+#demoPicker{padding:10px 16px;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#demoPicker select{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;min-width:280px}
+#demoExpected{color:var(--mute);font-size:12px}
+#banner{padding:10px 16px;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.pname{font-size:17px;font-weight:600}.pmeta{color:var(--mute)}
+#app{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;padding:14px 16px;max-width:1150px}
+#app.loading{opacity:.45;pointer-events:none}
+@media (max-width:820px){
+  #app{grid-template-columns:1fr;padding-bottom:110px}
+  .side{position:static}
+  .score{position:fixed;left:0;right:0;bottom:0;margin:0;border-radius:0;border-width:2px 0 0;z-index:20;
+         display:flex;align-items:center;gap:14px;text-align:left;padding:10px 16px;box-shadow:0 -4px 12px rgba(0,0,0,.08)}
+  .score .big{font-size:36px;flex:none}.score .cat{margin:0;font-size:16px}.score .mace{margin:0}
+  .score .guide{display:none}
+}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.chead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.letter{width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;display:grid;place-items:center;font-size:15px;flex:none}
+.ctitle{font-weight:600;font-size:15px;flex:1}.ctitle small{display:block;font-weight:400;color:var(--mute);font-size:12px}
+.badge{font-size:11px;background:#e7f0fa;color:var(--accent);padding:2px 7px;border-radius:8px;font-weight:600}
+.pts{min-width:30px;height:30px;border-radius:15px;display:grid;place-items:center;font-weight:700;font-size:15px;border:2px solid}
+.pts-0{color:var(--low);border-color:var(--low)}.pts-1{color:var(--mod);border-color:var(--mod)}.pts-2{color:var(--high);border-color:var(--high)}
+.pts-none{color:#aab4bf;border-color:#cfd6dd;border-style:dashed}
+.opts{display:grid;gap:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:7px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.opt:hover{border-color:#9db7d1}.opt.on{border-color:var(--accent);background:#eef5fc}
+.opt input{display:none}
+.optpts{width:22px;height:22px;border-radius:11px;background:#eef1f4;display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.opt.on .optpts{background:var(--accent);color:#fff}
+.optlbl small{display:block;color:var(--mute);font-size:12px}
+.auto{padding:6px 0}.auto small{display:block;color:var(--mute);font-size:12px}
+.rfs{display:grid;gap:4px}
+.rf{display:flex;gap:8px;align-items:flex-start;padding:5px 8px;border-radius:6px}
+.rf.on{background:#eef5fc}.rf.athero{border-top:1px dashed var(--line);margin-top:4px;padding-top:8px}
+.rf small.src{display:block;color:var(--low);font-size:12px}
+.why{margin-top:6px;font-size:12px;color:var(--mute)}
+.uln{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;margin:4px 0}
+.uln input{width:90px;font:inherit;padding:3px 6px;border:1px solid var(--line);border-radius:5px}
+.ratio{font-weight:600}
+.warn{background:var(--modbg);color:#6a3f00;padding:8px 10px;border-radius:6px;font-size:13px}
+.warn-inline{color:var(--mod);font-weight:600}
+.note{font-size:12px;color:var(--mute);margin-top:4px}
+details{margin-top:8px}summary{cursor:pointer;color:var(--accent);font-size:13px}
+details .opts{margin-top:6px}
+button{font:inherit;cursor:pointer}
+.link{background:none;border:0;color:var(--accent);padding:6px 0;text-decoration:underline}
+.side{position:sticky;top:10px;align-self:start}
+.score{border-radius:12px;padding:16px;text-align:center;border:2px solid var(--line);background:#fff;margin-bottom:10px}
+.score .big{font-size:52px;font-weight:700;line-height:1}.score .big span{font-size:18px;color:var(--mute);font-weight:500}
+.score .cat{font-size:18px;font-weight:700;margin-top:6px}.score .mace{margin-top:4px}
+.score .guide{margin-top:8px;font-size:12px;color:var(--ink);text-align:left}
+.score.low{border-color:var(--low);background:var(--lowbg)}.score.low .cat{color:var(--low)}
+.score.moderate{border-color:var(--mod);background:var(--modbg)}.score.moderate .cat{color:var(--mod)}
+.score.high{border-color:var(--high);background:var(--highbg)}.score.high .cat{color:var(--high)}
+.score.incomplete .cat{color:var(--mute)}.score.incomplete .mace{font-size:12px;color:var(--mute)}
+textarea{width:100%;height:170px;font:12px/1.35 ui-monospace,Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
+.btns{display:flex;gap:8px;margin-top:6px}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 12px}
+.btn.secondary{background:#e7edf3;color:var(--ink)}
+h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+#log{list-style:none;padding:0;margin:0;font-size:12px}#log li{padding:3px 0;border-bottom:1px solid #eef1f4}
+#log li.ok b{color:var(--low)}#log li.bad b{color:var(--high)}
+#log code{font-size:11px;color:var(--mute);word-break:break-all}
+footer{padding:4px 16px 20px;font-size:11px;color:var(--mute);max-width:1150px}
+</style>
+</head>
+<body>
+<header>
+  <h1>HEART Score<small>Chest pain risk · SMART on FHIR calculator</small></h1>
+  <span id="mode" class="mode">Starting…</span>
+</header>
+<div class="disclaimer">Prototype for demonstration and validation. Not for clinical decision-making until approved by institutional governance. All auto-filled items must be verified by the treating clinician.</div>
+<div id="err" hidden></div>
+<div id="demoPicker" hidden>
+  <label for="demoSelect"><b>Demo patient:</b></label>
+  <select id="demoSelect"></select>
+  <span id="demoExpected"></span>
+</div>
+<div id="banner"></div>
+<main id="app" class="loading">
+  <div>
+    <section class="card" id="cH"></section>
+    <section class="card" id="cE"></section>
+    <section class="card" id="cA"></section>
+    <section class="card" id="cR"></section>
+    <section class="card" id="cT"></section>
+  </div>
+  <aside class="side">
+    <div id="score" class="score incomplete"></div>
+    <div class="card">
+      <h3>Note text</h3>
+      <textarea id="note" readonly></textarea>
+      <div class="btns"><button class="btn" id="copyBtn">Copy for note</button><button class="btn secondary" id="resetBtn">Reset</button></div>
+    </div>
+    <div class="card">
+      <h3>Data pulled from the EHR</h3>
+      <ul id="log"></ul>
+    </div>
+  </aside>
+</main>
+<footer>
+  HEART: Six AJ et al., Neth Heart J 2008;16:191-6 · Backus BE et al., Int J Cardiol 2013;168:2153-8. Not validated for STEMI, hemodynamic instability, or obvious non-cardiac causes.
+  Troponin LOINC mapping and reference limits must be verified against the local lab build before use.
+</footer>
+<script>// @ts-nocheck
+(() => {
+"use strict";var FHIR=(()=>{var ie=Object.defineProperty;var Ge=Object.getOwnPropertyDescriptor;var Ye=Object.getOwnPropertyNames;var Ze=Object.prototype.hasOwnProperty;var ge=(t,e)=>{for(var r in e)ie(t,r,{get:e[r],enumerable:!0})},Qe=(t,e,r,i)=>{if(e&&typeof e=="object"||typeof e=="function")for(let n of Ye(e))!Ze.call(t,n)&&n!==r&&ie(t,n,{get:()=>e[n],enumerable:!(i=Ge(e,n))||i.enumerable});return t};var Xe=t=>Qe(ie({},"__esModule",{value:!0}),t);var Ft={};ge(Ft,{FhirClient:()=>E,authorize:()=>je,createSmartClient:()=>Ne,default:()=>_t,init:()=>Je,ready:()=>Le,settings:()=>Ke,utils:()=>We});var $=class extends Error{statusCode;status;statusText;response;constructor(e){super(`${e.status} ${e.statusText}
+URL: ${e.url}`),this.name="HttpError",this.response=e,this.statusCode=e.status,this.status=e.status,this.statusText=e.statusText}async parse(){if(!this.response.bodyUsed)try{let e=this.response.headers.get("content-type")||"text/plain";if(e.match(/\bjson\b/i)){let r=await this.response.json();r.error?(this.message+=`
+`+r.error,r.error_description&&(this.message+=": "+r.error_description)):this.message+=`
+
+`+JSON.stringify(r,null,4)}else if(e.match(/^text\//i)){let r=await this.response.text();r&&(this.message+=`
+
+`+r)}}catch{}return this}toJSON(){return{name:this.name,statusCode:this.statusCode,status:this.status,statusText:this.statusText,message:this.message}}};var me=["Account","AdverseEvent","AllergyIntolerance","Appointment","AppointmentResponse","AuditEvent","Basic","BodySite","BodyStructure","CarePlan","CareTeam","ChargeItem","Claim","ClaimResponse","ClinicalImpression","Communication","CommunicationRequest","Composition","Condition","Consent","Coverage","CoverageEligibilityRequest","CoverageEligibilityResponse","DetectedIssue","DeviceRequest","DeviceUseRequest","DeviceUseStatement","DiagnosticOrder","DiagnosticReport","DocumentManifest","DocumentReference","EligibilityRequest","Encounter","EnrollmentRequest","EpisodeOfCare","ExplanationOfBenefit","FamilyMemberHistory","Flag","Goal","Group","ImagingManifest","ImagingObjectSelection","ImagingStudy","Immunization","ImmunizationEvaluation","ImmunizationRecommendation","Invoice","List","MeasureReport","Media","MedicationAdministration","MedicationDispense","MedicationOrder","MedicationRequest","MedicationStatement","MolecularSequence","NutritionOrder","Observation","Order","Patient","Person","Procedure","ProcedureRequest","Provenance","QuestionnaireResponse","ReferralRequest","RelatedPerson","RequestGroup","ResearchSubject","RiskAssessment","Schedule","ServiceRequest","Specimen","SupplyDelivery","SupplyRequest","VisionPrescription"],ye={"0.4.0":2,"0.5.0":2,"1.0.0":2,"1.0.1":2,"1.0.2":2,"1.1.0":3,"1.4.0":3,"1.6.0":3,"1.8.0":3,"3.0.0":3,"3.0.1":3,"3.3.0":4,"3.5.0":4,"4.0.0":4,"4.0.1":4},Re=["patient","subject","requester","member","actor","beneficiary"],U="SMART_KEY";function u(t,...e){if(globalThis?.process?.env?.NODE_ENV==="test")return;let r=String(globalThis?.process?.env?.DEBUG||"");(typeof window<"u"||r==="*"||r.match(/\bFHIR\b/))&&(typeof t=="string"&&(t="[fhirclient] "+t),console.debug(t,...e))}var Y={},we={cm({code:t,value:e}){if(se({code:t,value:e}),t=="cm")return e;if(t=="m")return e*100;if(t=="in"||t=="[in_us]"||t=="[in_i]")return e*2.54;if(t=="ft"||t=="[ft_us]")return e*30.48;throw new Error("Unrecognized length unit: "+t)},kg({code:t,value:e}){if(se({code:t,value:e}),t=="kg")return e;if(t=="g")return e/1e3;if(t.match(/lb/))return e/2.20462;if(t.match(/oz/))return e/35.274;throw new Error("Unrecognized weight unit: "+t)},any(t){return se(t),t.value}};function se({value:t,code:e}){if(typeof t!="number")throw new Error("Found a non-numerical unit: "+t+" "+e)}async function et(t){if(!t.ok){let e=new $(t);throw await e.parse(),e}return t}function tt(t){return t.text().then(e=>e.length?JSON.parse(e):"")}function oe(t){if(!t)return t;if(Array.isArray(t))return t.map(r=>r&&typeof r=="object"?oe(r):r);let e={};return Object.keys(t).forEach(r=>{let i=r.toLowerCase(),n=t[r];e[i]=n&&typeof n=="object"?oe(n):n}),e}async function A(t,e={}){let{includeResponse:r,...i}=e;return fetch(t,{mode:"cors",...i,headers:{accept:"application/json",...oe(i.headers)}}).then(et).then(n=>{let s=n.headers.get("content-type")+"";return s.match(/\bjson\b/i)?tt(n).then(o=>({res:n,body:o})):s.match(/^text\//i)?n.text().then(o=>({res:n,body:o})):{res:n}}).then(({res:n,body:s})=>{if(!s&&n.status==201){let o=n.headers.get("location");if(o)return A(o,{...i,method:"GET",body:null,includeResponse:r})}return r?{body:s,response:n}:s===void 0?n:s})}function ae(t,e,r=!1){return r||!Y[t]?(Y[t]=A(t,e),Y[t]):Promise.resolve(Y[t])}function z(t="/",e){let r=String(t).replace(/\/*$/,"/")+"metadata";return ae(r,e).catch(i=>{throw new Error(`Failed to fetch the conformance statement from "${r}". ${i}`)})}function S(t,e=""){if(e=e.trim(),!e)return t;let r=e.split("."),i=t;for(;i&&r.length;){let n=r.shift();if(!n&&Array.isArray(i))return i.map(s=>S(s,r.join(".")));i=i[n]}return i}function Z(t,e,r,i=!1){return e.trim().split(".").reduce((n,s,o,l)=>{if(n&&o===l.length-1)n[s]=r;else return n&&n[s]===void 0&&i&&(n[s]=l[o+1].match(/^[0-9]+$/)?[]:{}),n?n[s]:void 0},t),t}function T(t){return Array.isArray(t)?t:[t]}function D(t,e){return t.match(/^https?:\/\//i)||t.match(/^urn:/i)?t:String(e||"").replace(/\/+$/,"")+"/"+t.replace(/^\/+/,"")}function Q(t,e){try{return new URL(t).origin===new URL(e).origin}catch{return!1}}function be(t=8,e="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"){let r=[],i=e.length;for(;t--;)r.push(e.charAt(Math.floor(Math.random()*i)));return r.join("")}function ce(t,e){let r=t.split(".")[1];return r?JSON.parse(e.base64urldecode(r)):null}function Pe(t=120,e){return Math.floor(+(e||new Date)/1e3+t)}function X(t,e){let r=Math.floor(Date.now()/1e3);if(t.expires_in)return r+t.expires_in;if(t.access_token){let i=ce(t.access_token,e);if(i&&i.exp)return i.exp}return r+300}function le(t,e){let r={};function i(n,s){n&&Array.isArray(n.coding)&&n.coding.forEach(({code:o})=>{o&&(r[o]=r[o]||[],r[o].push(s))})}return T(t).forEach(n=>{n.resourceType==="Observation"&&n[e]&&(Array.isArray(n[e])?n[e].forEach(s=>i(s,n)):i(n[e],n))}),r}function Se(t,e){let r=le(t,e);return(...i)=>i.filter(n=>n+""in r).reduce((n,s)=>n.concat(r[s+""]),[])}function xe(t,e){let i=(S(t,"rest.0.resource")||[]).find(s=>s.type===e);if(!i)throw new Error(`Resource "${e}" is not supported by this FHIR server`);if(!Array.isArray(i.searchParam))throw new Error(`No search parameters supported for "${e}" on this FHIR server`);if(e=="Patient"&&i.searchParam.find(s=>s.name=="_id"))return"_id";let n=Re.find(s=>i.searchParam.find(o=>o.name==s));if(!n)throw new Error("I don't know what param to use for "+e);return n}async function ke(t,e=800,r=720){if(typeof t=="function"&&(t=await t()),t&&typeof t=="object")return t;if(typeof t!="string")return u("Invalid target type '%s'. Failing back to '_self'.",typeof t),self;if(t=="_self")return self;if(t=="_parent")return parent;if(t=="_top")return top||self;if(t=="_blank"){let n,s=null;try{if(s=window.open("","SMARTAuthPopup"),!s)throw new Error("Perhaps window.open was blocked")}catch(o){n=o}return s||(u("Cannot open window. Failing back to '_self'. %s",n),self)}if(t=="popup"){let n,s=null;try{if(s=window.open("","SMARTAuthPopup",["height="+r,"width="+e,"menubar=0","resizable=1","status=0","top="+(screen.height-r)/2,"left="+(screen.width-e)/2].join(",")),!s)throw new Error("Perhaps the popup window was blocked")}catch(o){n=o}return s||(u("Cannot open window. Failing back to '_self'. %s",n),self)}let i=frames[t];return i||(u("Unknown target '%s'. Failing back to '_self'.",t),self)}function p(t,e){if(!t)throw new Error(e)}function Ue(t){p(Array.isArray(t),"The JSON patch must be an array"),p(t.length>0,"The JSON patch array should not be empty"),t.forEach(e=>{p(["add","replace","test","move","copy","remove"].indexOf(e.op)>-1,'Each patch operation must have an "op" property which must be one of: "add", "replace", "test", "move", "copy", "remove"'),p(e.path&&typeof e.path,`Invalid "${e.op}" operation. Missing "path" property`),e.op=="add"||e.op=="replace"||e.op=="test"?(p("value"in e,`Invalid "${e.op}" operation. Missing "value" property`),p(Object.keys(e).length==3,`Invalid "${e.op}" operation. Contains unknown properties`)):e.op=="move"||e.op=="copy"?(p(typeof e.from=="string",`Invalid "${e.op}" operation. Requires a string "from" property`),p(Object.keys(e).length==3,`Invalid "${e.op}" operation. Contains unknown properties`)):p(Object.keys(e).length==2,`Invalid "${e.op}" operation. Contains unknown properties`)})}var x={expired:"Session expired! Please re-launch the app",noScopeForId:"Trying to get the ID of the selected %s. Please add 'launch' or 'launch/%s' to the requested scopes and try again.",noIfNoAuth:"You are trying to get %s but the app is not authorized yet.",noFreeContext:"Please don't use open fhir servers if you need to access launch context items like the %S."};function rt(t){let e=new Headers(t);return e.delete("authorization"),Object.fromEntries(e.entries())}var E=class{fhirBaseUrl;constructor(e){p(e&&typeof e=="string"&&e.match(/https?:\/\/.+/),'A "fhirBaseUrl" string parameter is required and must begin with "http(s)"'),this.fhirBaseUrl=e}async getRequestDefaults(){return{}}async create(e,r){return this.fhirRequest(e.resourceType,{...r,method:"POST",body:JSON.stringify(e),headers:{"content-type":"application/json",...(r||{}).headers}})}async update(e,r){return this.fhirRequest(`${e.resourceType}/${e.id}`,{...r,method:"PUT",body:JSON.stringify(e),headers:{"content-type":"application/json",...(r||{}).headers}})}async delete(e,r={}){return this.fhirRequest(e,{...r,method:"DELETE"})}async patch(e,r,i={}){return Ue(r),this.fhirRequest(e,{...i,method:"PATCH",body:JSON.stringify(r),headers:{prefer:"return=presentation","content-type":"application/json-patch+json; charset=UTF-8",...i.headers}})}async resolveRef(e,r,i,n,s={}){let o=S(e,r);if(o){let l=Array.isArray(o);return Promise.all(T(o).filter(Boolean).map((h,a)=>{let c=h.reference;if(c)return this.fhirRequest(c,{...s,includeResponse:!1,cacheMap:n}).then(f=>{i&&(l?r.indexOf("..")>-1?Z(e,`${r.replace("..",`.${a}.`)}`,f):Z(e,`${r}.${a}`,f):Z(e,r,f))}).catch(f=>{if(f?.status===404)console.warn(`Missing reference ${c}. ${f}`);else throw f})}))}}async resolveReferences(e,r,i={}){await this.fetchReferences(e,r,!0,{},i)}async fetchReferences(e,r,i,n={},s={}){if(e.resourceType=="Bundle"){for(let a of e.entry||[])a.resource&&await this.fetchReferences(a.resource,r,i,n,s);return n}let o=r.map(a=>String(a).trim()).filter(Boolean);if(o=o.reduce((a,c)=>(a.includes(c)?u('Duplicated reference path "%s"',c):a.push(c),a),[]),!o.length)return Promise.resolve(n);let l={};o.forEach(a=>{let c=a.split(".").length;l[c]||(l[c]=[]),l[c].push(a)});let h=Promise.resolve();return Object.keys(l).sort().forEach(a=>{let c=l[a];h=h.then(()=>Promise.all(c.map(f=>this.resolveRef(e,f,i,n,s))))}),await h,n}async getReferences(e,r,i={}){let n=await this.fetchReferences(e,r,!1,{},i),s={};for(let o in n)s[o]=await n[o];return s}async*resources(e,r){let i=0;for await(let n of this.pages(e,r))for(let s of n.entry||[]){if(r?.limit&&++i>r.limit)return;yield s.resource}}async*pages(e,r){let{limit:i,...n}=r||{},s=h=>this.fhirRequest(h,n),o=typeof e=="string"||e instanceof URL?await s(e):e,l=0;for(;o&&o.resourceType==="Bundle"&&(!i||++l<=i)&&(yield o,!n?.signal?.aborted);){let h=(o.link??[]).find(a=>a.relation==="next"&&typeof a.url=="string");if(!h)break;o=await s(h.url)}}async fhirRequest(e,r={}){p(r,"fhirRequest requires a uri as first argument");let i=e+"",n=D(i,this.fhirBaseUrl),s=await this.getRequestDefaults(),o=s.headers||{};Q(n,this.fhirBaseUrl)||(o=rt(o)),r={...s,...r,headers:{...o,...r.headers||{}}};let{cacheMap:l}=r;return l?(i in l||(l[i]=A(n,r).then(h=>(l[i]=h,h)).catch(h=>{throw delete l[i],h})),l[i]):A(n,r)}async getFhirVersion(){return z(this.fhirBaseUrl).then(e=>e.fhirVersion)}async getFhirRelease(){return this.getFhirVersion().then(e=>ye[e]??0)}};async function nt(t,e){let r=D("/",e.state.serverUrl);async function i(n){let s=n.pathname.split("/").pop();p(s,`Invalid url "${n}"`),p(me.indexOf(s)>-1,`Cannot filter "${s}" resources by patient`);let o=await z(e.state.serverUrl),l=xe(o,s);return n.searchParams.set(l,e.patient.id),n.href}return typeof t=="string"||t instanceof URL?{url:await i(new URL(t+"",r))}:(t.url=await i(new URL(t.url+"",r)),t)}var v=class extends E{state;environment;patient;encounter;user;api;_refreshTask;constructor(e,r){let i=typeof r=="string"?{serverUrl:r}:r;p(i.serverUrl&&i.serverUrl.match(/https?:\/\/.+/),'A "serverUrl" option is required and must begin with "http(s)"'),super(i.serverUrl),this.state=i,this.environment=e,this._refreshTask=null;let n=this;this.patient={get id(){return n.getPatientId()},read:s=>{let o=this.patient.id;return o?this.request({...s,url:`Patient/${o}`}):Promise.reject(new Error("Patient is not available"))},request:(s,o={})=>this.patient.id?(async()=>{let l=await nt(s,this);return this.request(l,o)})():Promise.reject(new Error("Patient is not available"))},this.encounter={get id(){return n.getEncounterId()},read:s=>{let o=this.encounter.id;return o?this.request({...s,url:`Encounter/${o}`}):Promise.reject(new Error("Encounter is not available"))}},this.user={get fhirUser(){return n.getFhirUser()},get id(){return n.getUserId()},get resourceType(){return n.getUserType()},read:s=>{let o=this.user.fhirUser;return o?this.request({...s,url:o}):Promise.reject(new Error("User is not available"))}}}getPatientId(){let e=this.state.tokenResponse;return e?e.patient?e.patient:((this.state.scope||"").match(/\blaunch(\/patient)?\b/)?u("The ID of the selected patient is not available. Please check if your server supports that."):u(x.noScopeForId,"patient","patient"),null):(this.state.authorizeUri?u(x.noIfNoAuth,"the ID of the selected patient"):u(x.noFreeContext,"selected patient"),null)}getEncounterId(){let e=this.state.tokenResponse;return e?e.encounter?e.encounter:((this.state.scope||"").match(/\blaunch(\/encounter)?\b/)?u("The ID of the selected encounter is not available. Please check if your server supports that, and that the selected patient has any recorded encounters."):u(x.noScopeForId,"encounter","encounter"),null):(this.state.authorizeUri?u(x.noIfNoAuth,"the ID of the selected encounter"):u(x.noFreeContext,"selected encounter"),null)}getIdToken(){let e=this.state.tokenResponse;if(e){let r=e.id_token,i=this.state.scope||"";if(!r){let n=i.match(/\bopenid\b/),s=i.match(/\bprofile\b/),o=i.match(/\bfhirUser\b/);return!n||!(o||s)?u("You are trying to get the id_token but you are not using the right scopes. Please add 'openid' and 'fhirUser' or 'profile' to the scopes you are requesting."):u("The id_token is not available. Please check if your server supports that."),null}return ce(r,this.environment)}return this.state.authorizeUri?u(x.noIfNoAuth,"the id_token"):u(x.noFreeContext,"id_token"),null}getFhirUser(){let e=this.getIdToken();return e?e.fhirUser?e.fhirUser.split("/").slice(-2).join("/"):e.profile:null}getUserId(){let e=this.getFhirUser();return e?e.split("/")[1]:null}getUserType(){let e=this.getFhirUser();return e?e.split("/")[0]:null}getAuthorizationHeader(){let e=this.getState("tokenResponse.access_token");if(e)return"Bearer "+e;let{username:r,password:i}=this.state;return r&&i?"Basic "+this.environment.btoa(r+":"+i):null}async _clearState(){let e=this.environment.getStorage(),r=await e.get(U);r&&await e.unset(r),await e.unset(U),this.state.tokenResponse={}}async getRequestDefaults(){let e=this.getAuthorizationHeader();return{headers:{...e?{authorization:e}:{}}}}async request(e,r={},i={}){p(e,"request requires an url or request options as argument");let n;typeof e=="string"||e instanceof URL?(n=String(e),e={}):n=String(e.url),n=D(n,this.state.serverUrl);let s={graph:r.graph!==!1,flat:!!r.flat,pageLimit:r.pageLimit??1,resolveReferences:T(r.resolveReferences||[]),useRefreshToken:r.useRefreshToken!==!1,onPage:typeof r.onPage=="function"?r.onPage:void 0},o=e.signal||void 0;s.useRefreshToken&&await this.refreshIfNeeded({signal:o});let l=e,h=this.getAuthorizationHeader();h&&Q(n,this.state.serverUrl)&&(l={...e,headers:{...e.headers,authorization:h}}),u("client:request: %s, options: %O, fhirOptions: %O",n,e,s);let a;return super.fhirRequest(n,l).then(c=>e.includeResponse?(a=c.response,c.body):c).catch(async c=>{throw c.status==401?this.getState("tokenResponse.access_token")?s.useRefreshToken?(u("client:request: Auto-refresh failed! Please re-launch the app."),await this._clearState(),c.message+=`
+`+x.expired,c):(u("client:request: Your session has expired and the useRefreshToken option is set to false. Please re-launch the app."),await this._clearState(),c.message+=`
+`+x.expired,c):(c.message+=`
+This app cannot be accessed directly. Please launch it as SMART app!`,c):c}).catch(c=>{throw c.status==403&&u("client:request: Permission denied! Please make sure that you have requested the proper scopes."),c}).then(async c=>!c||typeof c=="string"||c instanceof Response?e.includeResponse?{body:c,response:a}:c:(await this.fetchReferences(c,s.resolveReferences,s.graph,i,e),Promise.resolve(c).then(async f=>{if(f&&f.resourceType=="Bundle"){let q=f.link||[];if(s.flat&&(f=(f.entry||[]).map(m=>m.resource)),s.onPage&&await s.onPage(f,{...i}),--s.pageLimit){let m=q.find(d=>d.relation=="next");if(f=T(f),m&&m.url){let d=await this.request({url:m.url,signal:o},s,i);return s.onPage?null:s.resolveReferences.length?(Object.assign(i,d.references),f.concat(T(d.data||d))):f.concat(T(d))}}}return f}).then(f=>{if(s.graph)i={};else if(!s.onPage&&s.resolveReferences.length)return{data:f,references:i};return f}).then(f=>e.includeResponse?{body:f,response:a}:f)))}refreshIfNeeded(e={}){let r=this.getState("tokenResponse.access_token"),i=this.getState("tokenResponse.refresh_token"),n=this.state.expiresAt||0;return r&&i&&n-10<Date.now()/1e3?this.refresh(e):Promise.resolve(this.state)}refresh(e={}){u("client:refresh: Attempting to refresh with refresh_token...");let r=this.state?.tokenResponse?.refresh_token;p(r,"Unable to refresh. No refresh_token found.");let i=this.state.tokenUri;p(i,"Unable to refresh. No tokenUri found.");let n=this.getState("tokenResponse.scope")||"",s=n.search(/\boffline_access\b/)>-1,o=n.search(/\bonline_access\b/)>-1;if(p(s||o,"Unable to refresh. No offline_access or online_access scope found."),!this._refreshTask){let l=`grant_type=refresh_token&refresh_token=${encodeURIComponent(r)}`;this.environment.options.refreshTokenWithClientId&&(l+=`&client_id=${this.state.clientId}`);let h={credentials:this.environment.options.refreshTokenWithCredentials||"same-origin",...e,method:"POST",mode:"cors",headers:{...e.headers||{},"content-type":"application/x-www-form-urlencoded"},body:l};if(!("authorization"in h.headers)){let{clientSecret:a,clientId:c}=this.state;a&&(h.headers.authorization="Basic "+this.environment.btoa(c+":"+a))}this._refreshTask=A(i,h).then(a=>(p(a.access_token,"No access token received"),u("client:refresh: Received new access token response %O",a),this.state.tokenResponse={...this.state.tokenResponse,...a},this.state.expiresAt=X(a,this.environment),this.state)).catch(a=>{throw this.state?.tokenResponse?.refresh_token&&(u("client:refresh: Deleting the expired or invalid refresh token."),delete this.state.tokenResponse.refresh_token),a}).finally(()=>{this._refreshTask=null;let a=this.state.key;a?this.environment.getStorage().set(a,this.state):u("client:refresh: No 'key' found in Clint.state. Cannot persist the instance.")})}return this._refreshTask}byCode(e,r){return le(e,r)}byCodes(e,r){return Se(e,r)}units=we;getPath(e,r=""){return S(e,r)}getState(e=""){return S({...this.state},e)}};var ee="smart-auth-target";function _(){return typeof window=="object"}async function it(t="/",e){let r=String(t).replace(/\/*$/,"/")+".well-known/smart-configuration";return ae(r,e).catch(i=>{throw new Error(`Failed to fetch the well-known json "${r}". ${i.message}`)})}async function st(t="/",e){return it(t,e).then(r=>{if(!r.authorization_endpoint||!r.token_endpoint)throw new Error("Invalid wellKnownJson");return{registrationUri:r.registration_endpoint||"",authorizeUri:r.authorization_endpoint,tokenUri:r.token_endpoint,codeChallengeMethods:r.code_challenge_methods_supported||[]}})}async function ot(t="/",e){return z(t,e).then(r=>{let i="http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris",n=(S(r||{},"rest.0.security.extension")||[]).filter(o=>o.url===i).map(o=>o.extension)[0],s={registrationUri:"",authorizeUri:"",tokenUri:"",codeChallengeMethods:[]};return n&&n.forEach(o=>{o.url==="register"&&(s.registrationUri=o.valueUri),o.url==="authorize"&&(s.authorizeUri=o.valueUri),o.url==="token"&&(s.tokenUri=o.valueUri)}),s})}async function at(t="/",e,r){return st(t,e).catch(()=>ot(t,r))}function Ae(t,e,r,i){let n=t.searchParams.get(e),s=o=>String(o).replace(/\/+$/,"");if(r&&n&&s(n)!==s(r))throw new Error(`The "${e}" url parameter does not match the "${e}" option ("${r}") passed to authorize(). Passing "${e}" as an option means ${i}, so a different "${e}" url parameter is not allowed. To fix this, either:
+  - remove the "${e}" option if the app should accept any "${e}" from the url (for example in EHR launches or when testing against other servers), or
+  - pass an array of configurations to authorize(), each with its own "issMatch", to list all the servers the app supports. See http://docs.smarthealthit.org/client-js/open_servers#2-using-multiple-launch-configurations`)}async function te(t,e={}){let r=t.getUrl();if(Array.isArray(e)){let g=r.searchParams.get("iss")||r.searchParams.get("fhirServiceUrl");if(!g)throw new Error('Passing in an "iss" url parameter is required if authorize uses multiple configurations');let I=e.find(O=>{if(O.issMatch){if(typeof O.issMatch=="function")return!!O.issMatch(g);if(typeof O.issMatch=="string")return O.issMatch===g;if(O.issMatch instanceof RegExp)return O.issMatch.test(g)}return!1});return p(I,`No configuration found matching the current "iss" parameter "${g}"`),await te(t,I)}let{clientSecret:i,fakeTokenResponse:n,encounterId:s,target:o,width:l,height:h,pkceMode:a,clientPublicKeySetUrl:c,redirect_uri:f,client_id:q}=e,{iss:m,launch:d,patientId:w,fhirServiceUrl:B,redirectUri:R,noRedirect:H,scope:K="",clientId:F,completeInTarget:W,clientPrivateJwk:Ve,stateKey:b}=e,C=t.getStorage();Ae(r,"iss",m,"the app is preconfigured to work with that server"),Ae(r,"clientId",F,"the app is preconfigured to use that client ID"),m=r.searchParams.get("iss")||m,B=r.searchParams.get("fhirServiceUrl")||B,d=r.searchParams.get("launch")||d,w=r.searchParams.get("patientId")||w,F=r.searchParams.get("clientId")||F,F||(F=q),R||(R=f),R?R.match(/^https?\:\/\//)||(R=t.relative(R)):R=t.relative(".");let V=String(m||B||"");if(!V)throw new Error("No server url found. It must be specified as `iss` or as `fhirServiceUrl` parameter");if(m&&u("Making %s launch...",d?"EHR":"standalone"),d&&!K.match(/launch/)&&(K+=" launch"),_()){let g=Ce(),I=Ie();(g||I)&&W!==!0&&W!==!1&&(W=g,console.warn('Your app is being authorized from within an iframe or popup window. Please be explicit and provide a "completeInTarget" option. Use "true" to complete the authorization in the same window, or "false" to try to complete it in the parent or the opener window. See http://docs.smarthealthit.org/client-js/api.html'))}let pe=await C.get(U);await C.unset(pe),_()&&await C.unset(ee),b=b??be(16);let P={clientId:F,scope:K,redirectUri:R,serverUrl:V,clientSecret:i,clientPrivateJwk:Ve,tokenResponse:{},key:b,completeInTarget:W,clientPublicKeySetUrl:c};(!_()||S(t,"options.fullSessionStorageSupport"))&&await C.set(U,b),_()&&e.completeInTarget===!1&&await C.set(ee,b),n&&Object.assign(P.tokenResponse,n),w&&Object.assign(P.tokenResponse,{patient:w}),s&&Object.assign(P.tokenResponse,{encounter:s});let k=R+"?state="+encodeURIComponent(b);if(B&&!m)return u("Making fake launch..."),await C.set(b,P),H?k:await t.redirect(k);let de=await at(V,e.wellKnownRequestOptions,e.conformanceRequestOptions);if(Object.assign(P,de),await C.set(b,P),!P.authorizeUri)return H?k:await t.redirect(k);let G=["response_type=code","client_id="+encodeURIComponent(F||""),"scope="+encodeURIComponent(K),"redirect_uri="+encodeURIComponent(R),"aud="+encodeURIComponent(V),"state="+encodeURIComponent(b)];if(d&&G.push("launch="+encodeURIComponent(d)),ct(de.codeChallengeMethods.includes("S256"),a)){let g=await t.security.generatePKCEChallenge();Object.assign(P,g),await C.set(b,P),G.push("code_challenge="+P.codeChallenge),G.push("code_challenge_method=S256")}if(k=P.authorizeUri+"?"+G.join("&"),H)return k;if(o&&_()){let g;if(g=await ke(o,l,h),g!==self)try{g.sessionStorage.removeItem(pe),g.sessionStorage.setItem(b,JSON.stringify(P)),g.sessionStorage.setItem(ee,JSON.stringify(b))}catch(I){u('Failed to modify window.sessionStorage. Perhaps it is from different origin?. Failing back to "_self". %s',I),g=self}if(g!==self)try{g.location.href=k,self.addEventListener("message",Te)}catch(I){u('Failed to modify window.location. Perhaps it is from different origin?. Failing back to "_self". %s',I),self.location.href=k}else self.location.href=k;return}else return await t.redirect(k)}function ct(t,e){if(e==="disabled")return!1;if(e==="unsafeV1")return!0;if(e==="required"){if(!t)throw new Error("Required PKCE code challenge method (`S256`) was not found in the server's codeChallengeMethods declaration.");return!0}return t}function Ce(){try{return self!==top&&parent!==self}catch{return!0}}function Ie(){try{return self===top&&!!opener&&opener!==self&&!!window.name}catch{return!1}}function Te(t){t.data.type=="completeAuth"&&t.origin===new URL(self.location.href).origin&&(window.removeEventListener("message",Te),window.location.href=t.data.url)}async function ue(t,e={}){let r=t.getUrl(),i=t.getStorage(),n=r.searchParams,s=n.get("state")||e.stateKey,o=n.get("code")||e.code,l=n.get("error"),h=n.get("error_description");if(s||(s=await i.get(U)),l||h)throw new Error([l,h].filter(Boolean).join(": "));u("key: %s, code: %s",s,o),p(s,"No 'state' parameter found. Please (re)launch the app.");let a=await i.get(s),c=_()?S(t,"options.fullSessionStorageSupport"):!0;if(_()&&a&&!a.completeInTarget){let d=Ce(),w=Ie(),B=await i.get(ee);if((d||w)&&B===s&&!r.searchParams.get("complete")){r.searchParams.set("complete","1");let{href:R,origin:H}=r;return d&&parent.postMessage({type:"completeAuth",url:R},H),w&&(opener.postMessage({type:"completeAuth",url:R},H),window.close()),new Promise(()=>{})}}r.searchParams.delete("complete");let f=!!(n.has("state")||e.stateKey);if(_()&&S(t,"options.replaceBrowserHistory")&&(o||f)&&(o&&(n.delete("code"),u("Removed code parameter from the url.")),f&&c&&(n.delete("state"),u("Removed state parameter from the url.")),window.history.replaceState&&window.history.replaceState({},"",r.href)),p(a,"No state found! Please (re)launch the app."),!(!o||a.tokenResponse?.access_token)&&a.tokenUri){p(o,"'code' url parameter is required"),u("Preparing to exchange the code for access token...");let d=await lt(t,{code:o,state:a,clientPublicKeySetUrl:e.clientPublicKeySetUrl,privateKey:e.privateKey||a.clientPrivateJwk});u("Token request options: %O",d);let w=await A(a.tokenUri,d);u("Token response: %O",w),p(w.access_token,"Failed to obtain access token."),a.expiresAt=X(w,t),a={...a,tokenResponse:w},await i.set(s,a),u("Authorization successful!")}else u(a.tokenResponse?.access_token?"Already authorized":"No authorization needed");c&&await i.set(U,s);let m=new v(t,a);return u("Created client instance: %O",m),m}async function lt(t,{code:e,state:r,clientPublicKeySetUrl:i,privateKey:n}){let{redirectUri:s,clientSecret:o,tokenUri:l,clientId:h,codeVerifier:a}=r;p(s,"Missing state.redirectUri"),p(l,"Missing state.tokenUri"),p(h,"Missing state.clientId");let c={method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:`code=${e}&grant_type=authorization_code&redirect_uri=${encodeURIComponent(s)}`};if(o)c.headers.authorization="Basic "+t.btoa(h+":"+o),u("Using state.clientSecret to construct the authorization header: %s",c.headers.authorization);else if(n){let f="key"in n?n.key:await t.security.importJWK(n),q={typ:"JWT",kid:n.kid,jku:i||r.clientPublicKeySetUrl},m={iss:h,sub:h,aud:l,jti:t.base64urlencode(t.security.randomBytes(32)),exp:Pe(120)},d=await t.security.signCompactJws(n.alg,f,q,m);c.body+=`&client_assertion_type=${encodeURIComponent("urn:ietf:params:oauth:client-assertion-type:jwt-bearer")}`,c.body+=`&client_assertion=${encodeURIComponent(d)}`,u("Using state.clientPrivateJwk to add a client_assertion to the POST body")}else u("Public client detected; adding state.clientId to the POST body"),c.body+=`&client_id=${encodeURIComponent(h)}`;return a&&(u("Found state.codeVerifier, adding to the POST body"),c.body+="&code_verifier="+a),c}async function Ee(t,e,r){let i=t.getUrl(),n=i.searchParams.get("code"),s=i.searchParams.get("state");if(n&&s)return ue(t,r);let o=t.getStorage(),l=s||await o.get(U),h=await o.get(l);return h?new v(t,h):te(t,e).then(()=>new Promise(()=>{}))}var L=class{async get(e){let r=sessionStorage[e];return r?JSON.parse(r):null}async set(e,r){return sessionStorage[e]=JSON.stringify(r),r}async unset(e){return e in sessionStorage?(delete sessionStorage[e],!0):!1}};var ne={};ge(ne,{digestSha256:()=>De,generatePKCEChallenge:()=>At,importJWK:()=>Ct,randomBytes:()=>$e,signCompactJws:()=>It});var ve=typeof TextDecoder=="function"?new TextDecoder("utf-8",{ignoreBOM:!0}):void 0,_e=typeof TextEncoder=="function"?new TextEncoder:void 0,ut="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",j=Array.prototype.slice.call(ut),re=(t=>{let e={};return t.forEach((r,i)=>e[r]=i),e})(j),ht=/^(?:[A-Za-z\d+\/]{4})*?(?:[A-Za-z\d+\/]{2}(?:==)?|[A-Za-z\d+\/]{3}=?)?$/,y=String.fromCharCode.bind(String),ft=typeof Uint8Array.from=="function"?Uint8Array.from.bind(Uint8Array):t=>new Uint8Array(Array.prototype.slice.call(t,0)),Oe=t=>t.replace(/=/g,"").replace(/[+\/]/g,e=>e=="+"?"-":"_"),qe=t=>t.replace(/[^A-Za-z0-9\+\/]/g,""),pt=t=>{let e,r,i,n,s="",o=t.length%3;for(let l=0;l<t.length;){if((r=t.charCodeAt(l++))>255||(i=t.charCodeAt(l++))>255||(n=t.charCodeAt(l++))>255)throw new TypeError("invalid character found");e=r<<16|i<<8|n,s+=j[e>>18&63]+j[e>>12&63]+j[e>>6&63]+j[e&63]}return o?s.slice(0,o-3)+"===".substring(o):s},Be=typeof btoa=="function"?t=>btoa(t):pt,he=typeof Uint8Array.prototype.toBase64=="function"?t=>t.toBase64():t=>{let r=[];for(let i=0,n=t.length;i<n;i+=4096)r.push(y.apply(null,t.subarray(i,i+4096)));return Be(r.join(""))},M=(t,e=!1)=>e?Oe(he(t)):he(t),dt=t=>{if(t.length<2){var e=t.charCodeAt(0);return e<128?t:e<2048?y(192|e>>>6)+y(128|e&63):y(224|e>>>12&15)+y(128|e>>>6&63)+y(128|e&63)}else{var e=65536+(t.charCodeAt(0)-55296)*1024+(t.charCodeAt(1)-56320);return y(240|e>>>18&7)+y(128|e>>>12&63)+y(128|e>>>6&63)+y(128|e&63)}},gt=/[\uD800-\uDBFF][\uDC00-\uDFFF]|[^\x00-\x7F]/g,mt=t=>t.replace(gt,dt),Fe=_e?t=>he(_e.encode(t)):t=>Be(mt(t)),yt=(t,e=!1)=>e?Oe(Fe(t)):Fe(t),J=t=>yt(t,!0),Rt=/[\xC0-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF7][\x80-\xBF]{3}/g,wt=t=>{switch(t.length){case 4:var e=(7&t.charCodeAt(0))<<18|(63&t.charCodeAt(1))<<12|(63&t.charCodeAt(2))<<6|63&t.charCodeAt(3),r=e-65536;return y((r>>>10)+55296)+y((r&1023)+56320);case 3:return y((15&t.charCodeAt(0))<<12|(63&t.charCodeAt(1))<<6|63&t.charCodeAt(2));default:return y((31&t.charCodeAt(0))<<6|63&t.charCodeAt(1))}},bt=t=>t.replace(Rt,wt),Pt=t=>{if(t=t.replace(/\s+/g,""),!ht.test(t))throw new TypeError("malformed base64.");t+="==".slice(2-(t.length&3));let e,r,i,n=[];for(let s=0;s<t.length;)e=re[t.charAt(s++)]<<18|re[t.charAt(s++)]<<12|(r=re[t.charAt(s++)])<<6|(i=re[t.charAt(s++)]),r===64?n.push(y(e>>16&255)):i===64?n.push(y(e>>16&255,e>>8&255)):n.push(y(e>>16&255,e>>8&255,e&255));return n.join("")},He=typeof atob=="function"?t=>atob(qe(t)):Pt,St=typeof Uint8Array.fromBase64=="function"?t=>Uint8Array.fromBase64(t):t=>ft(He(t).split("").map(e=>e.charCodeAt(0)));var xt=ve?t=>ve.decode(St(t)):t=>bt(He(t)),kt=t=>qe(t.replace(/[-_]/g,e=>e=="-"?"+":"/")),ze=t=>xt(kt(t));if(!globalThis?.crypto?.subtle)throw globalThis.isSecureContext?new Error("Some of the required subtle crypto functionality is not available in the current environment (no crypto.subtle). Please use a polyfill to provide this functionality."):new Error("Some of the required subtle crypto functionality is not available unless you run this app in secure context (using HTTPS or running locally). See https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts");var Me=globalThis.crypto,fe=Me.subtle,Ut={ES384:{name:"ECDSA",namedCurve:"P-384"},RS384:{name:"RSASSA-PKCS1-v1_5",modulusLength:4096,publicExponent:new Uint8Array([1,0,1]),hash:{name:"SHA-384"}}};function $e(t){return Me.getRandomValues(new Uint8Array(t))}async function De(t){let e=new TextEncoder().encode(t),r=await fe.digest("SHA-256",e);return new Uint8Array(r)}var At=async(t=96)=>{let e=$e(t),r=M(e,!0);return{codeChallenge:M(await De(r),!0),codeVerifier:r}};async function Ct(t){if(!t.alg)throw new Error('The "alg" property of the JWK must be set to "ES384" or "RS384"');if(Array.isArray(t.key_ops)||(t.key_ops=["sign"]),!t.key_ops.includes("sign"))throw new Error('The "key_ops" property of the JWK does not contain "sign"');try{return await fe.importKey("jwk",t,Ut[t.alg],t.ext===!0,t.key_ops)}catch(e){throw new Error(`The ${t.alg} is not supported by this browser: ${e}`)}}async function It(t,e,r,i){let n=JSON.stringify({...r,alg:t}),s=JSON.stringify(i),o=`${J(n)}.${J(s)}`,l=await fe.sign({...e.algorithm,hash:"SHA-384"},e,new TextEncoder().encode(o));return`${o}.${M(new Uint8Array(l),!0)}`}var N=class{_url=null;_storage=null;options;security=ne;constructor(e={}){this.options={replaceBrowserHistory:!0,fullSessionStorageSupport:!0,refreshTokenWithCredentials:"same-origin",...e}}relative(e){return new URL(e,this.getUrl().href).href}get fhir(){return typeof fhir=="function"?fhir:null}getUrl(){return this._url||(this._url=new URL(location+"")),this._url}redirect(e){location.href=e}getStorage(){return this._storage||(this._storage=new L),this._storage}atob(e){return window.atob(e)}btoa(e){return window.btoa(e)}base64urlencode(e){return typeof e=="string"?J(e):M(e,!0)}base64urldecode(e){return ze(e)}getSmartApi(){return{ready:(...e)=>ue(this,...e),authorize:e=>te(this,e),init:e=>Ee(this,e),client:e=>new v(this,e),options:this.options,utils:{security:ne}}}};var Tt=new N,{ready:Le,authorize:je,init:Je,client:Ne,options:Ke,utils:We}=Tt.getSmartApi(),Et={settings:Ke,ready:Le,authorize:je,init:Je};var vt={client:Ne,FhirClient:E,utils:We,oauth2:Et},_t=vt;return Xe(Ft);})();
+;window.FHIR = FHIR.default;})();
+
+</script>
+<script>/*
+ * HEART Score logic — pure functions, no UI, no network.
+ * Calculon-style module.
+ *
+ * Criteria (Six 2008; Backus 2013):
+ *   History  0 slightly / 1 moderately / 2 highly suspicious      (clinician)
+ *   EKG      0 normal / 1 nonspecific repol / 2 significant ST dev (clinician)
+ *   Age      0 <45 / 1 45-64 / 2 >=65                             (Patient.birthDate)
+ *   Risk     0 none / 1 one-two / 2 >=3 OR known atherosclerotic dz (problem list, BMI, smoking)
+ *   Troponin 0 <=ULN / 1 >1-3x ULN / 2 >3x ULN                      (Observation + reference range)
+ *   Total 0-3 low, 4-6 moderate, 7-10 high.
+ */
+(function (root) {
+  "use strict";
+
+  // ---------- Codes ----------
+  // LOINC codes for troponin results. Verify against local lab build before go-live.
+  const TROPONIN_LOINC = {
+    "10839-9": "Troponin I (conventional)",
+    "42757-5": "Troponin I (conventional)",
+    "49563-0": "Troponin I (sensitive)",
+    "89579-7": "Troponin I (high-sensitivity)",
+    "6598-7": "Troponin T (conventional)",
+    "67151-1": "Troponin T (high-sensitivity)"
+  };
+  const BMI_LOINC = "39156-5";
+  const SMOKING_LOINC = "72166-2";
+
+  // Risk-factor definitions. ICD-10 prefixes, SNOMED codes, and text keywords (fallback).
+  const RISK_FACTORS = [
+    { key: "htn", label: "Hypertension",
+      icd: ["I10", "I11", "I12", "I13", "I15", "I16"],
+      snomed: ["38341003", "59621000"], words: ["hypertension"] },
+    { key: "lipid", label: "Hypercholesterolemia / hyperlipidemia",
+      icd: ["E78"], snomed: ["55822004", "13644009"],
+      words: ["hyperlipidemia", "hypercholesterolemia", "dyslipidemia"] },
+    { key: "dm", label: "Diabetes mellitus",
+      icd: ["E08", "E09", "E10", "E11", "E13"],
+      snomed: ["73211009", "44054006", "46635009"], words: ["diabetes"] },
+    { key: "obesity", label: "Obesity (BMI > 30)",
+      icd: ["E66", "Z68.3", "Z68.4"], snomed: ["414916001"], words: ["obesity"] },
+    { key: "smoking", label: "Smoking (current or quit ≤ 3 months)",
+      icd: ["F17", "Z72.0"], snomed: ["77176002", "449868002"],
+      words: ["tobacco use", "nicotine dependence", "smoker"] },
+    { key: "famhx", label: "Family history of premature CVD",
+      icd: ["Z82.4"], snomed: ["266894000"], words: ["family history of ischemic heart"] }
+  ];
+  const ATHERO = {
+    key: "athero", label: "Known atherosclerotic disease (MI, PCI/CABG, CVA/TIA, PAD)",
+    icd: ["I20", "I21", "I22", "I24", "I25", "I63", "I65", "I66", "I69.3", "G45",
+          "I70", "I73.9", "Z86.73", "Z95.1", "Z95.5", "Z98.61"],
+    snomed: ["53741008", "22298006", "414545008", "230690007", "399957001", "266257000",
+             "232717009", "36969009"],
+    words: ["coronary artery disease", "myocardial infarction", "stent", "cabg",
+            "bypass graft", "stroke", "transient ischemic", "peripheral arter", "atherosclero"]
+  };
+
+  // ---------- Helpers ----------
+  function codingsOf(resource) {
+    const cc = resource && resource.code;
+    if (!cc) return [];
+    return (cc.coding || []).map(c => ({ system: c.system || "", code: String(c.code || ""), display: c.display || "" }));
+  }
+  function textOf(resource) {
+    const cc = resource && resource.code;
+    if (!cc) return "";
+    return (cc.text || (cc.coding || []).map(c => c.display).filter(Boolean).join(" ") || "");
+  }
+  function isIcd(system) { return /icd-?10/i.test(system) || /2\.16\.840\.1\.113883\.6\.90/.test(system); }
+  function isSnomed(system) { return /snomed/i.test(system) || /2\.16\.840\.1\.113883\.6\.96/.test(system); }
+
+  function matchesDef(resource, def) {
+    const codings = codingsOf(resource);
+    for (const c of codings) {
+      if (isIcd(c.system) && def.icd.some(p => c.code.toUpperCase().startsWith(p))) return { how: "ICD-10 " + c.code };
+      if (isSnomed(c.system) && def.snomed.includes(c.code)) return { how: "SNOMED " + c.code };
+    }
+    const t = textOf(resource).toLowerCase();
+    if (t && def.words.some(w => t.includes(w))) return { how: "text match" };
+    return null;
+  }
+
+  function isActiveCondition(cond) {
+    const cs = cond.clinicalStatus;
+    if (!cs) return true; // Epic problem list entries without status: treat as active
+    const code = ((cs.coding || [])[0] || {}).code || cs.text || "";
+    return !/resolved|inactive|remission/i.test(code);
+  }
+
+  function obsTime(o) { return o.effectiveDateTime || o.issued || (o.effectivePeriod && o.effectivePeriod.start) || ""; }
+  function newestFirst(list) { return list.slice().sort((a, b) => (obsTime(b) > obsTime(a) ? 1 : obsTime(b) < obsTime(a) ? -1 : 0)); }
+  function hasLoinc(o, codes) {
+    return codingsOf(o).some(c => /loinc/i.test(c.system) && codes.includes(c.code));
+  }
+
+  // ---------- Component scorers ----------
+  function ageYears(birthDate, now) {
+    if (!birthDate) return null;
+    const b = new Date(birthDate + (birthDate.length === 10 ? "T00:00:00" : ""));
+    const n = now ? new Date(String(now).length === 10 ? now + "T12:00:00" : now) : new Date();
+    let a = n.getFullYear() - b.getFullYear();
+    const m = n.getMonth() - b.getMonth();
+    if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--;
+    return a;
+  }
+  function agePoints(age) {
+    if (age == null || isNaN(age)) return null;
+    return age >= 65 ? 2 : age >= 45 ? 1 : 0;
+  }
+
+  /** Returns {found: {key: {label, source}}, athero: {label, source} | null} from FHIR data. */
+  function findRiskFactors(conditions, observations) {
+    const found = {};
+    let athero = null;
+    for (const c of (conditions || []).filter(isActiveCondition)) {
+      const name = textOf(c) || "(unnamed problem)";
+      for (const def of RISK_FACTORS) {
+        if (found[def.key]) continue;
+        const m = matchesDef(c, def);
+        if (m) found[def.key] = { label: def.label, source: "Problem list: " + name + " (" + m.how + ")" };
+      }
+      if (!athero) {
+        const m = matchesDef(c, ATHERO);
+        if (m) athero = { label: ATHERO.label, source: "Problem list: " + name + " (" + m.how + ")" };
+      }
+    }
+    const obs = observations || [];
+    // BMI > 30 -> obesity
+    const bmi = newestFirst(obs.filter(o => hasLoinc(o, [BMI_LOINC])))[0];
+    if (bmi && bmi.valueQuantity && bmi.valueQuantity.value > 30 && !found.obesity) {
+      found.obesity = { label: "Obesity (BMI > 30)", source: "BMI " + bmi.valueQuantity.value + " on " + fmtDate(obsTime(bmi)) };
+    }
+    // Smoking status
+    const smk = newestFirst(obs.filter(o => hasLoinc(o, [SMOKING_LOINC])))[0];
+    if (smk && !found.smoking) {
+      const v = smk.valueCodeableConcept || {};
+      const txt = (v.text || ((v.coding || [])[0] || {}).display || "").toLowerCase();
+      const code = ((v.coding || [])[0] || {}).code || "";
+      const current = ["449868002", "428041000124106", "77176002", "428071000124103", "428061000124105"].includes(code) ||
+                      (/smoker|smokes|every day|some days|current/.test(txt) && !/never|former|ex-/.test(txt));
+      if (current) found.smoking = { label: "Smoking (current or quit ≤ 3 months)", source: "Smoking status: " + (v.text || txt) };
+    }
+    return { found, athero };
+  }
+
+  function riskPoints(count, hasAthero) {
+    if (hasAthero) return 2;
+    if (count >= 3) return 2;
+    if (count >= 1) return 1;
+    return 0;
+  }
+
+  /** Picks the newest troponin and computes its ratio to the upper reference limit. */
+  function findTroponin(observations) {
+    const codes = Object.keys(TROPONIN_LOINC);
+    const tro = newestFirst((observations || []).filter(o => hasLoinc(o, codes) && o.status !== "entered-in-error"));
+    if (!tro.length) return null;
+    const o = tro[0];
+    const c = codingsOf(o).find(x => codes.includes(x.code));
+    const q = o.valueQuantity || {};
+    let value = q.value;
+    let qualifier = q.comparator || "";
+    if (value == null && o.valueString) {           // e.g. "<0.01" or "<6"
+      const m = String(o.valueString).match(/([<>]=?)?\s*([\d.]+)/);
+      if (m) { qualifier = m[1] || ""; value = parseFloat(m[2]); }
+    }
+    const rr = (o.referenceRange || [])[0] || {};
+    const uln = rr.high && rr.high.value != null ? rr.high.value : null;
+    return {
+      value, qualifier, unit: q.unit || (rr.high && rr.high.unit) || "",
+      uln, time: obsTime(o), assay: TROPONIN_LOINC[c.code], loinc: c.code,
+      name: textOf(o), count: tro.length
+    };
+  }
+
+  function troponinPoints(value, uln, qualifier) {
+    if (value == null || uln == null || !(uln > 0)) return null;
+    if (qualifier && qualifier.startsWith("<")) return 0;
+    const r = value / uln;
+    return r <= 1 ? 0 : r <= 3 ? 1 : 2;
+  }
+
+  // ---------- Total ----------
+  const CATEGORIES = [
+    { min: 0, max: 3, key: "low", label: "Low risk", mace: "0.9–1.7%",
+      guidance: "Low-risk range; consider discharge with outpatient follow-up per local protocol (HEART Pathway uses serial troponins)." },
+    { min: 4, max: 6, key: "moderate", label: "Moderate risk", mace: "12–16.6%",
+      guidance: "Consider observation / admission and further evaluation." },
+    { min: 7, max: 10, key: "high", label: "High risk", mace: "50–65%",
+      guidance: "Consider early invasive strategy and cardiology involvement." }
+  ];
+
+  /** parts: {history, ekg, age, risk, troponin}, each 0/1/2 or null. */
+  function total(parts) {
+    const keys = ["history", "ekg", "age", "risk", "troponin"];
+    const missing = keys.filter(k => parts[k] == null);
+    const score = keys.reduce((s, k) => s + (parts[k] || 0), 0);
+    if (missing.length) return { complete: false, missing, partial: score };
+    const cat = CATEGORIES.find(c => score >= c.min && score <= c.max);
+    return { complete: true, score, category: cat };
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return "unknown time";
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  root.HEART = {
+    TROPONIN_LOINC, BMI_LOINC, SMOKING_LOINC, RISK_FACTORS, ATHERO, CATEGORIES,
+    ageYears, agePoints, findRiskFactors, riskPoints, findTroponin, troponinPoints, total, fmtDate
+  };
+  if (typeof module !== "undefined") module.exports = root.HEART;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+<script>/*
+ * Synthetic FHIR R4 data for demo mode. NO REAL PATIENT DATA.
+ * Shaped like Epic FHIR responses so the same parsing code runs in demo and live mode.
+ */
+(function (root) {
+  "use strict";
+  const now = new Date();
+  const ago = (h) => new Date(now.getTime() - h * 3600e3).toISOString();
+  const yearsAgo = (y, m = 3, d = 14) => `${now.getFullYear() - y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const ICD = "http://hl7.org/fhir/sid/icd-10-cm";
+  const LOINC = "http://loinc.org";
+
+  const cond = (id, text, icd) => ({
+    resourceType: "Condition", id,
+    clinicalStatus: { coding: [{ code: "active" }] },
+    category: [{ coding: [{ code: "problem-list-item" }] }],
+    code: { text, coding: [{ system: ICD, code: icd, display: text }] }
+  });
+  const trop = (id, loinc, name, value, unit, uln, hoursAgo) => ({
+    resourceType: "Observation", id, status: "final",
+    category: [{ coding: [{ code: "laboratory" }] }],
+    code: { text: name, coding: [{ system: LOINC, code: loinc, display: name }] },
+    effectiveDateTime: ago(hoursAgo),
+    valueQuantity: { value, unit },
+    referenceRange: [{ high: { value: uln, unit } }]
+  });
+  const bmi = (id, v, hoursAgo) => ({
+    resourceType: "Observation", id, status: "final",
+    category: [{ coding: [{ code: "vital-signs" }] }],
+    code: { text: "BMI", coding: [{ system: LOINC, code: "39156-5" }] },
+    effectiveDateTime: ago(hoursAgo), valueQuantity: { value: v, unit: "kg/m2" }
+  });
+  const smoke = (id, text, snomed) => ({
+    resourceType: "Observation", id, status: "final",
+    category: [{ coding: [{ code: "social-history" }] }],
+    code: { text: "Tobacco smoking status", coding: [{ system: LOINC, code: "72166-2" }] },
+    effectiveDateTime: ago(2),
+    valueCodeableConcept: { text, coding: [{ system: "http://snomed.info/sct", code: snomed, display: text }] }
+  });
+  const pt = (id, given, family, gender, birthDate, mrn) => ({
+    resourceType: "Patient", id, gender, birthDate,
+    name: [{ given: [given], family, text: `${given} ${family}` }],
+    identifier: [{ type: { text: "MRN" }, value: mrn }]
+  });
+
+  root.DEMO_PATIENTS = [
+    {
+      label: "Low risk — 38 F, atypical pain, no history",
+      expected: "History 0–1, EKG 0 → total 0–1 (Low)",
+      patient: pt("demo-1", "Avery", "Testpatient", "female", yearsAgo(38), "Z0000001"),
+      conditions: [cond("c1", "Seasonal allergic rhinitis", "J30.2")],
+      observations: [
+        trop("o1", "10839-9", "Troponin I", 0.01, "ng/mL", 0.04, 1.5),
+        bmi("o2", 24.1, 2),
+        smoke("o3", "Never smoker", "266919005")
+      ]
+    },
+    {
+      label: "Moderate risk — 58 M, HTN + DM, hs-TnI normal",
+      expected: "Age 1, Risk 1, Trop 0 → +History/EKG (e.g. 1+1) = 4 (Moderate)",
+      patient: pt("demo-2", "Jordan", "Testpatient", "male", yearsAgo(58), "Z0000002"),
+      conditions: [
+        cond("c1", "Essential hypertension", "I10"),
+        cond("c2", "Type 2 diabetes mellitus without complications", "E11.9"),
+        cond("c3", "Gastroesophageal reflux disease", "K21.9")
+      ],
+      observations: [
+        trop("o1", "89579-7", "Troponin I, high sensitivity", 12, "ng/L", 34, 1),
+        bmi("o2", 28.7, 2),
+        smoke("o3", "Former smoker", "8517006")
+      ]
+    },
+    {
+      label: "High risk — 71 M, prior CABG, smoker, hs-TnT 3.2× ULN",
+      expected: "Age 2, Risk 2, Trop 2 → +History/EKG (e.g. 2+1) = 9 (High)",
+      patient: pt("demo-3", "Casey", "Testpatient", "male", yearsAgo(71), "Z0000003"),
+      conditions: [
+        cond("c1", "Coronary artery disease of native coronary artery", "I25.10"),
+        cond("c2", "Status post coronary artery bypass graft", "Z95.1"),
+        cond("c3", "Type 2 diabetes mellitus with hyperglycemia", "E11.65"),
+        cond("c4", "Hyperlipidemia, unspecified", "E78.5")
+      ],
+      observations: [
+        trop("o1", "67151-1", "Troponin T, high sensitivity", 45, "ng/L", 14, 0.8),
+        trop("o0", "67151-1", "Troponin T, high sensitivity", 19, "ng/L", 14, 30),
+        bmi("o2", 31.4, 3),
+        smoke("o3", "Current every day smoker", "449868002")
+      ]
+    },
+    {
+      label: "Incomplete — 50 F, troponin not resulted yet",
+      expected: "Shows missing troponin; score stays incomplete until entered",
+      patient: pt("demo-4", "Riley", "Testpatient", "female", yearsAgo(50), "Z0000004"),
+      conditions: [cond("c1", "Pure hypercholesterolemia", "E78.00")],
+      observations: [bmi("o2", 33.0, 1)]
+    }
+  ];
+
+  /** Minimal stand-in for a fhirclient Client, answering the same queries the app makes. */
+  root.makeDemoClient = function (d) {
+    return {
+      demo: true,
+      patient: { id: d.patient.id, read: async () => d.patient },
+      state: { serverUrl: "demo://synthetic-fhir" },
+      request: async (url) => {
+        await new Promise(r => setTimeout(r, 150)); // feel like a network call
+        const [path, qs] = url.split("?");
+        const p = new URLSearchParams(qs || "");
+        if (path.startsWith("Condition")) return d.conditions;
+        if (path.startsWith("Observation")) {
+          const codes = (p.get("code") || "").split(",").map(s => s.split("|").pop()).filter(Boolean);
+          return d.observations.filter(o => !codes.length || o.code.coding.some(c => codes.includes(c.code)));
+        }
+        throw new Error("Demo server: unsupported query " + url);
+      }
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+<script>/*
+ * HEART Score — SMART on FHIR app shell (Calculon-style module).
+ * Modes:
+ *   LIVE  — opened by an EHR launch (?iss=...&launch=...) or returning from OAuth (?code=...&state=...)
+ *   DEMO  — opened directly; uses synthetic patients from demo-data.js
+ */
+(function () {
+  "use strict";
+  const H = window.HEART;
+
+  // ====== Configuration — fill in after app registration ======
+  const CONFIG = {
+    clientId: "sandbox-demo-client", // ?client_id=... in the URL overrides (sandbox testing)
+    scope: "launch openid fhirUser patient/Patient.read patient/Condition.read patient/Observation.read"
+  };
+
+  const $ = (sel) => document.querySelector(sel);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ---------- State ----------
+  let S = null;
+  function freshState() {
+    return {
+      patient: null, ageYrs: null,
+      history: null, ekg: null,
+      rf: {},            // key -> {checked, auto, source}
+      trop: null,        // result of H.findTroponin
+      tropManual: null,  // clinician override 0/1/2
+      ulnOverride: null,
+      log: []            // data-pull log for transparency
+    };
+  }
+
+  // ---------- Boot ----------
+  async function boot() {
+    const p = new URLSearchParams(location.search);
+    try {
+      if (p.get("launch") && p.get("iss")) {
+        setMode("live", "Authorizing with " + hostOf(p.get("iss")) + "…");
+        await FHIR.oauth2.authorize({
+          clientId: p.get("client_id") || CONFIG.clientId,
+          scope: CONFIG.scope,
+          redirectUri: location.origin + location.pathname
+        });
+        return;
+      }
+      if (p.get("code") || p.get("state") || p.get("error")) {
+        setMode("live", "Connecting…");
+        const client = await FHIR.oauth2.ready();
+        setMode("live", "LIVE · " + hostOf(client.state.serverUrl));
+        $("#demoPicker").hidden = true;
+        await loadPatient(client);
+        return;
+      }
+    } catch (e) {
+      showError("SMART launch failed: " + (e.message || e) + ". Falling back to demo mode.");
+    }
+    startDemo();
+  }
+
+  function startDemo() {
+    setMode("demo", "DEMO · synthetic patients only");
+    const sel = $("#demoSelect");
+    sel.innerHTML = DEMO_PATIENTS.map((d, i) => `<option value="${i}">${esc(d.label)}</option>`).join("");
+    sel.onchange = () => loadDemo(+sel.value);
+    $("#demoPicker").hidden = false;
+    loadDemo(0);
+  }
+  function loadDemo(i) {
+    const d = DEMO_PATIENTS[i];
+    $("#demoExpected").textContent = "Expected: " + d.expected;
+    loadPatient(makeDemoClient(d));
+  }
+
+  // ---------- Data pull ----------
+  async function pull(client, label, url) {
+    const t0 = performance.now();
+    try {
+      let res = await client.request(url, { pageLimit: 3, flat: true });
+      if (res && res.resourceType === "Bundle") res = (res.entry || []).map(e => e.resource);
+      res = (res || []).filter(r => r && r.resourceType !== "OperationOutcome");
+      S.log.push({ label, url, ok: true, n: res.length, ms: Math.round(performance.now() - t0) });
+      return res;
+    } catch (e) {
+      S.log.push({ label, url, ok: false, err: e.message || String(e) });
+      return [];
+    }
+  }
+
+  async function loadPatient(client) {
+    S = freshState();
+    $("#app").classList.add("loading");
+    renderLog();
+    let patient;
+    try {
+      patient = await client.patient.read();
+      S.log.push({ label: "Patient", url: "Patient/" + client.patient.id, ok: true, n: 1 });
+    } catch (e) {
+      S.log.push({ label: "Patient", url: "Patient/" + (client.patient && client.patient.id), ok: false, err: e.message });
+      showError("Could not read the patient. Was the app launched with a patient in context?");
+    }
+    const pid = client.patient.id;
+    const tropCodes = Object.keys(H.TROPONIN_LOINC).map(c => "http://loinc.org|" + c).join(",");
+    const [conds, trops, bmis, smokes] = await Promise.all([
+      pull(client, "Problem list", `Condition?patient=${pid}&category=problem-list-item`),
+      pull(client, "Troponin", `Observation?patient=${pid}&code=${tropCodes}`),
+      pull(client, "BMI", `Observation?patient=${pid}&code=http://loinc.org|${H.BMI_LOINC}`),
+      pull(client, "Smoking status", `Observation?patient=${pid}&code=http://loinc.org|${H.SMOKING_LOINC}`)
+    ]);
+
+    S.patient = patient || null;
+    S.ageYrs = patient ? H.ageYears(patient.birthDate) : null;
+
+    const rf = H.findRiskFactors(conds, bmis.concat(smokes));
+    for (const def of H.RISK_FACTORS) {
+      const f = rf.found[def.key];
+      S.rf[def.key] = { label: def.label, checked: !!f, auto: !!f, source: f ? f.source : "" };
+    }
+    S.rf.athero = { label: H.ATHERO.label, checked: !!rf.athero, auto: !!rf.athero, source: rf.athero ? rf.athero.source : "", athero: true };
+
+    S.trop = H.findTroponin(trops);
+    $("#app").classList.remove("loading");
+    render();
+  }
+
+  // ---------- Scoring from state ----------
+  function parts() {
+    const rfKeys = H.RISK_FACTORS.map(d => d.key);
+    const count = rfKeys.filter(k => S.rf[k] && S.rf[k].checked).length;
+    const uln = S.ulnOverride != null ? S.ulnOverride : (S.trop && S.trop.uln);
+    const autoTrop = S.trop ? H.troponinPoints(S.trop.value, uln, S.trop.qualifier) : null;
+    return {
+      history: S.history, ekg: S.ekg,
+      age: H.agePoints(S.ageYrs),
+      risk: H.riskPoints(count, S.rf.athero && S.rf.athero.checked),
+      troponin: S.tropManual != null ? S.tropManual : autoTrop,
+      _rfCount: count, _autoTrop: autoTrop, _uln: uln
+    };
+  }
+
+  // ---------- Render ----------
+  function render() {
+    if (!S) return;
+    const P = parts();
+    renderBanner();
+    renderHistory(P); renderEkg(P); renderAge(P); renderRisk(P); renderTrop(P);
+    renderScore(P); renderNote(P); renderLog();
+  }
+
+  function pts(n) {
+    return n == null ? `<span class="pts pts-none">–</span>` : `<span class="pts pts-${n}">${n}</span>`;
+  }
+  function radios(name, current, opts) {
+    return `<div class="opts">` + opts.map(([v, label, hint]) =>
+      `<label class="opt ${current === v ? "on" : ""}"><input type="radio" name="${name}" value="${v}" ${current === v ? "checked" : ""}>
+       <span class="optpts">${v}</span><span class="optlbl">${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ""}</span></label>`).join("") + `</div>`;
+  }
+  function bindRadios(name, fn) {
+    document.querySelectorAll(`input[name="${name}"]`).forEach(el => el.onchange = () => { fn(+el.value); render(); });
+  }
+
+  function renderBanner() {
+    const p = S.patient;
+    if (!p) { $("#banner").innerHTML = `<div class="pname">No patient</div>`; return; }
+    const n = (p.name || [])[0] || {};
+    const name = n.text || [((n.given || []).join(" ")), n.family].filter(Boolean).join(" ");
+    const mrn = ((p.identifier || []).find(i => /mrn/i.test((i.type && i.type.text) || "")) || (p.identifier || [])[0] || {}).value;
+    $("#banner").innerHTML = `<div class="pname">${esc(name)}</div>
+      <div class="pmeta">${esc(S.ageYrs)} y · ${esc(p.gender || "")} · DOB ${esc(p.birthDate || "?")}${mrn ? " · MRN " + esc(mrn) : ""}</div>`;
+  }
+
+  function renderHistory(P) {
+    $("#cH").innerHTML = head("H", "History", P.history, "Clinician judgment") + radios("hist", S.history, [
+      [0, "Slightly suspicious", "Mostly non-specific features"],
+      [1, "Moderately suspicious", "Mix of specific and non-specific"],
+      [2, "Highly suspicious", "Mostly specific: pressure, radiation, exertional, diaphoresis"]]);
+    bindRadios("hist", v => S.history = v);
+  }
+  function renderEkg(P) {
+    $("#cE").innerHTML = head("E", "EKG", P.ekg, "Clinician read") + radios("ekg", S.ekg, [
+      [0, "Normal", ""],
+      [1, "Non-specific repolarization", "LBBB, LVH, paced, repolarization changes"],
+      [2, "Significant ST deviation", "Not attributable to LBBB/LVH/digoxin"]]);
+    bindRadios("ekg", v => S.ekg = v);
+  }
+  function renderAge(P) {
+    $("#cA").innerHTML = head("A", "Age", P.age, "From Epic: Patient.birthDate", true) +
+      `<div class="auto">${S.ageYrs == null ? "Birth date not available" : `<b>${S.ageYrs} years</b> → ${P.age === 2 ? "≥ 65" : P.age === 1 ? "45–64" : "< 45"}`}</div>`;
+  }
+  function renderRisk(P) {
+    const rows = H.RISK_FACTORS.map(d => d.key).concat(["athero"]).map(k => {
+      const r = S.rf[k];
+      return `<label class="rf ${r.checked ? "on" : ""} ${r.athero ? "athero" : ""}">
+        <input type="checkbox" data-rf="${k}" ${r.checked ? "checked" : ""}>
+        <span>${esc(r.label)}${r.auto ? `<small class="src">✓ ${esc(r.source)}</small>` : ""}</span></label>`;
+    }).join("");
+    const why = S.rf.athero.checked ? "known atherosclerotic disease → 2" : `${P._rfCount} risk factor${P._rfCount === 1 ? "" : "s"} → ${P.risk}`;
+    $("#cR").innerHTML = head("R", "Risk factors", P.risk, "Pre-filled from problem list, BMI, smoking status — verify", true) +
+      `<div class="rfs">${rows}</div><div class="why">${why}</div>`;
+    document.querySelectorAll("[data-rf]").forEach(el => el.onchange = () => { S.rf[el.dataset.rf].checked = el.checked; render(); });
+  }
+  function renderTrop(P) {
+    const t = S.trop;
+    let body;
+    if (!t) {
+      body = `<div class="warn">No troponin result found in Epic for this patient. Select manually once resulted.</div>`;
+    } else {
+      const ratio = (t.value != null && P._uln) ? (t.value / P._uln) : null;
+      body = `<div class="auto"><b>${esc(t.qualifier)}${esc(t.value)} ${esc(t.unit)}</b> · ${esc(t.name || t.assay)}
+        <small>Resulted ${esc(H.fmtDate(t.time))} · LOINC ${esc(t.loinc)}${t.count > 1 ? ` · newest of ${t.count}` : ""}</small></div>
+        <div class="uln">Upper reference limit: ${P._uln != null ? `<b>${esc(P._uln)} ${esc(t.unit)}</b>` : `<span class="warn-inline">not provided</span>`}
+          <input id="ulnIn" type="number" step="any" placeholder="override" value="${S.ulnOverride != null ? S.ulnOverride : ""}">
+          ${ratio != null ? `<span class="ratio">= ${ratio.toFixed(2)}× ULN</span>` : ""}</div>
+        ${/high-sens/i.test(t.assay) ? `<div class="note">High-sensitivity assay: HEART was derived with conventional troponin; interpret per local protocol.</div>` : ""}`;
+    }
+    $("#cT").innerHTML = head("T", "Initial troponin", P.troponin, t ? (S.tropManual != null ? "Clinician override" : "From Epic: Observation") : "Manual", !!t && S.tropManual == null) + body +
+      `<details ${S.tropManual != null || !t ? "open" : ""}><summary>Override</summary>` +
+      radios("trop", S.tropManual, [[0, "≤ normal limit"], [1, "1–3× normal limit"], [2, "> 3× normal limit"]]) +
+      (S.tropManual != null ? `<button class="link" id="tropClear">Use Epic value</button>` : "") + `</details>`;
+    bindRadios("trop", v => S.tropManual = v);
+    const ul = $("#ulnIn");
+    if (ul) ul.onchange = () => { S.ulnOverride = ul.value === "" ? null : parseFloat(ul.value); render(); };
+    const tc = $("#tropClear");
+    if (tc) tc.onclick = () => { S.tropManual = null; render(); };
+  }
+
+  function head(letter, title, points, sub, auto) {
+    return `<div class="chead"><span class="letter">${letter}</span><div class="ctitle">${title}<small>${esc(sub)}</small></div>
+      ${auto ? `<span class="badge">auto</span>` : ""}${pts(points)}</div>`;
+  }
+
+  function renderScore(P) {
+    const r = H.total(P);
+    const el = $("#score");
+    if (!r.complete) {
+      const names = { history: "History", ekg: "EKG", age: "Age", risk: "Risk factors", troponin: "Troponin" };
+      el.className = "score incomplete";
+      el.innerHTML = `<div class="big">${r.partial}<span>/10 so far</span></div>
+        <div><div class="cat">Incomplete</div><div class="mace">Still needed: ${r.missing.map(m => names[m]).join(", ")}</div></div>`;
+      return;
+    }
+    el.className = "score " + r.category.key;
+    el.innerHTML = `<div class="big">${r.score}<span>/10</span></div>
+      <div><div class="cat">${r.category.label}</div>
+      <div class="mace">6-week MACE ≈ ${r.category.mace}</div>
+      <div class="guide">${esc(r.category.guidance)}</div></div>`;
+  }
+
+  function renderNote(P) {
+    const r = H.total(P);
+    const lab = (v, arr) => v == null ? "not scored" : arr[v];
+    const rfs = H.RISK_FACTORS.filter(d => S.rf[d.key].checked).map(d => d.label.replace(/ \(.*/, ""));
+    if (S.rf.athero.checked) rfs.push("known atherosclerotic disease");
+    const t = S.trop;
+    const lines = [
+      `HEART Score: ${r.complete ? r.score + "/10 — " + r.category.label + " (6-wk MACE ≈ " + r.category.mace + ")" : "INCOMPLETE"}`,
+      `  History: ${lab(P.history, ["slightly suspicious (0)", "moderately suspicious (1)", "highly suspicious (2)"])}`,
+      `  EKG: ${lab(P.ekg, ["normal (0)", "non-specific repolarization (1)", "significant ST deviation (2)"])}`,
+      `  Age: ${S.ageYrs} y (${P.age})`,
+      `  Risk factors: ${rfs.length ? rfs.join(", ") : "none"} (${P.risk})`,
+      `  Troponin: ${t ? `${t.qualifier}${t.value} ${t.unit}, ULN ${P._uln ?? "?"} at ${H.fmtDate(t.time)}` : "no result"}${S.tropManual != null ? " [clinician override]" : ""} (${P.troponin ?? "not scored"})`,
+      `Calculated with HEART module (demo build); components reviewed by treating clinician.`
+    ];
+    $("#note").value = lines.join("\n");
+  }
+
+  function renderLog() {
+    if (!S) return;
+    $("#log").innerHTML = S.log.map(l =>
+      `<li class="${l.ok ? "ok" : "bad"}"><b>${esc(l.label)}</b> <code>GET ${esc(l.url.replace(/http:\/\/loinc\.org\|/g, ""))}</code>
+       ${l.ok ? `→ ${l.n} resource${l.n === 1 ? "" : "s"}${l.ms != null ? ` (${l.ms} ms)` : ""}` : `→ error: ${esc(l.err)}`}</li>`).join("") || "<li>…</li>";
+  }
+
+  // ---------- Misc UI ----------
+  function setMode(kind, text) { const m = $("#mode"); m.className = "mode " + kind; m.textContent = text; }
+  function showError(msg) { const e = $("#err"); e.textContent = msg; e.hidden = false; }
+  function hostOf(u) { try { return new URL(u).host; } catch (_) { return u; } }
+
+  $("#copyBtn").onclick = async () => {
+    const ta = $("#note");
+    try { await navigator.clipboard.writeText(ta.value); }
+    catch (_) { ta.select(); try { document.execCommand("copy"); } catch (__) {} }
+    $("#copyBtn").textContent = "Copied ✓";
+    setTimeout(() => $("#copyBtn").textContent = "Copy for note", 1500);
+  };
+  $("#resetBtn").onclick = () => { if (S) { S.history = null; S.ekg = null; S.tropManual = null; S.ulnOverride = null; render(); } };
+
+  boot();
+})();
+</script>
+</body>
+</html>
