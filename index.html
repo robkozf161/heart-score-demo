@@ -178,7 +178,7 @@ This app cannot be accessed directly. Please launch it as SMART app!`,c):c}).cat
       icd: ["E08", "E09", "E10", "E11", "E13"],
       snomed: ["73211009", "44054006", "46635009"], words: ["diabetes"] },
     { key: "obesity", label: "Obesity (BMI > 30)",
-      icd: ["E66", "Z68.3", "Z68.4"], snomed: ["414916001"], words: ["obesity"] },
+      icd: ["E66", "Z68.3", "Z68.4"], snomed: ["414916001", "162864005"], words: ["obesity"] },
     { key: "smoking", label: "Smoking (current or quit ≤ 3 months)",
       icd: ["F17", "Z72.0"], snomed: ["77176002", "449868002"],
       words: ["tobacco use", "nicotine dependence", "smoker"] },
@@ -575,21 +575,27 @@ This app cannot be accessed directly. Please launch it as SMART app!`,c):c}).cat
       showError("Could not read the patient. Was the app launched with a patient in context?");
     }
     const pid = client.patient.id;
-    const tropCodes = Object.keys(H.TROPONIN_LOINC).map(c => "http://loinc.org|" + c).join(",");
+    // Search values must be URL-encoded: some servers/proxies mangle a raw "http://...|code".
+    const enc = encodeURIComponent;
+    const loinc = (codes) => enc(codes.map(c => "http://loinc.org|" + c).join(","));
     const [probs, dxs, trops, bmis, smokes] = await Promise.all([
-      pull(client, "Problem list", `Condition?patient=${pid}&category=problem-list-item`),
-      pull(client, "Encounter diagnoses", `Condition?patient=${pid}&category=encounter-diagnosis`),
-      pull(client, "Troponin", `Observation?patient=${pid}&code=${tropCodes}`),
-      pull(client, "BMI", `Observation?patient=${pid}&code=http://loinc.org|${H.BMI_LOINC}`),
-      pull(client, "Smoking status", `Observation?patient=${pid}&code=http://loinc.org|${H.SMOKING_LOINC}`)
+      pull(client, "Problem list", `Condition?patient=${enc(pid)}&category=problem-list-item`),
+      pull(client, "Encounter diagnoses", `Condition?patient=${enc(pid)}&category=encounter-diagnosis`),
+      pull(client, "Troponin", `Observation?patient=${enc(pid)}&code=${loinc(Object.keys(H.TROPONIN_LOINC))}`),
+      pull(client, "BMI", `Observation?patient=${enc(pid)}&code=${loinc([H.BMI_LOINC])}`),
+      pull(client, "Smoking status", `Observation?patient=${enc(pid)}&code=${loinc([H.SMOKING_LOINC])}`)
     ]);
+    // Fallback for servers whose Conditions carry no category (e.g. some sandboxes).
+    let other = [];
+    if (!probs.length && !dxs.length) other = await pull(client, "All conditions (fallback)", `Condition?patient=${enc(pid)}`);
 
     S.patient = patient || null;
-    S.ageYrs = patient ? H.ageYears(patient.birthDate) : null;
+    S.ageYrs = patient ? H.ageYears(patient.birthDate, patient.deceasedDateTime || undefined) : null;
 
     // Problem list first so its entries are cited ahead of encounter diagnoses.
     const conds = probs.map(c => ({ ...c, _src: "Problem list" }))
-      .concat(dxs.map(c => ({ ...c, _src: "Encounter diagnosis" })));
+      .concat(dxs.map(c => ({ ...c, _src: "Encounter diagnosis" })))
+      .concat(other.map(c => ({ ...c, _src: "Condition" })));
     const rf = H.findRiskFactors(conds, bmis.concat(smokes));
     for (const def of H.RISK_FACTORS) {
       const f = rf.found[def.key];
@@ -746,7 +752,7 @@ This app cannot be accessed directly. Please launch it as SMART app!`,c):c}).cat
   function renderLog() {
     if (!S) return;
     $("#log").innerHTML = S.log.map(l =>
-      `<li class="${l.ok ? "ok" : "bad"}"><b>${esc(l.label)}</b> <code>GET ${esc(l.url.replace(/http:\/\/loinc\.org\|/g, ""))}</code>
+      `<li class="${l.ok ? "ok" : "bad"}"><b>${esc(l.label)}</b> <code>GET ${esc(decodeURIComponent(l.url).replace(/http:\/\/loinc\.org\|/g, ""))}</code>
        ${l.ok ? `→ ${l.n} resource${l.n === 1 ? "" : "s"}${l.ms != null ? ` (${l.ms} ms)` : ""}` : `→ error: ${esc(l.err)}`}</li>`).join("") || "<li>…</li>";
   }
 
